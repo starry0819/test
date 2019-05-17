@@ -12,10 +12,10 @@ var addr = flag.String("addr", "localhost:8011", "http service address")
 
 func main() {
 	u := url.URL{Scheme: "ws", Host: *addr, Path: "/ws"}
-	var dialer *websocket.Dialer
+	//var dialer *websocket.Dialer
 
 	//通过Dialer连接websocket服务器
-	conn, _, err := dialer.Dial(u.String(), nil)
+	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		fmt.Println(err)
 		return

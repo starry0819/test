@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cihub/seelog"
 	"github.com/gorilla/websocket"
 	"github.com/satori/go.uuid"
 	"net/http"
@@ -59,19 +60,14 @@ func (manager *ClientManger) start() {
 		case conn := <-manager.register:
 			manager.clients[conn] = true
 			// 将连接成功的消息json格式化
-			message := "/A new socket has connect."
-			fmt.Println(message)
-			jsonMessage, _ := json.Marshal(&ResponseMessage{Response: message})
-			// 调用客户端管理者的send方法
-			manager.send(jsonMessage, conn)
 		// 有连接断开
 		case conn := <-manager.unregister:
 			// 判断连接状态, 如果是true, 则关闭send, 删除连接client的值
 			if _, ok := manager.clients[conn]; ok {
 				close(conn.send)
 				delete(manager.clients, conn)
-				jsonMessage, _ := json.Marshal(&ResponseMessage{Response: "/A socket has disconnected."})
-				manager.send(jsonMessage, conn)
+				//jsonMessage, _ := json.Marshal(&ResponseMessage{Response: "/A socket has disconnected."})
+				//manager.send(jsonMessage, conn)
 			}
 		// 广播
 		case message := <-manager.broadcast:
@@ -105,13 +101,17 @@ func (c *Client) read() {
 
 	for {
 		//读取消息
-		_, message, err := c.socket.ReadMessage()
+		messageType, message, err := c.socket.ReadMessage()
+		fmt.Println("messageType: " , messageType)
 		//如果有错误信息，就注销这个连接然后关闭
+		fmt.Println("before message in read")
 		if err != nil {
 			manager.unregister <- c
 			c.socket.Close()
+			seelog.Error(err.Error())
 			break
 		}
+		fmt.Println("after message in read")
 		//如果没有错误信息就把信息放入broadcast
 		jsonMessage, _ := json.Marshal(&Message{UserNumber: c.id, Param: string(message)})
 		manager.broadcast <- jsonMessage
@@ -175,5 +175,5 @@ func wsHandler(res http.ResponseWriter, req *http.Request) {
 	//启动协程收web端传过来的消息
 	go client.read()
 	//启动协程把消息返回给web端
-	go client.write()
+	//go client.write()
 }
